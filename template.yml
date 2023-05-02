@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  horizon-trust-bank
+
+Transform:
+- AWS::Serverless-2016-10-31
+
+Resources:
+
+  HorizonTrustApiGateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: nonprod
+
+  CheckBalanceHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/
+      Handler: check-balance.handler
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A Lambda function that returns a static string.
+      Policies:
+        # Give Lambda basic execution Permission to the helloFromLambda
+      - AWSLambdaBasicExecutionRole
+      Events:
+        GetBalance:
+          Type: HttpApi
+          Properties:
+            Path: /balance
+            Method: GET
+            ApiId: !Ref HorizonTrustApiGateway
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - check-balance/handler.ts
+
+  WithdrawFundsHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/
+      Handler: withdraw-funds.handler
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Withdraw funds from a bankaccount
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      Events:
+        WithdrawFunds:
+          Type: HttpApi
+          Properties: 
+            Path: /withdraw
+            Method: GET
+            ApiId: !Ref HorizonTrustApiGateway
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - withdraw-funds/handler.ts
+
